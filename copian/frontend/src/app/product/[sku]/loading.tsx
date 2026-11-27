@@ -1,0 +1,10 @@
+import StorefrontShell from "@/components/StorefrontShell";
+import { ProductDetailSkeleton } from "@/components/Skeleton";
+
+export default function ProductDetailLoading() {
+  return (
+    <StorefrontShell>
+      <ProductDetailSkeleton />
+    </StorefrontShell>
+  );
+}

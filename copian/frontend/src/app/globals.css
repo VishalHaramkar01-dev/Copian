@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Preserve square-ish checkboxes & chevron clearance on custom-padded <select>s over @tailwindcss/forms */
+input[type="checkbox"] {
+  border-radius: 4px;
+}
+
+select:not([multiple]):not([size]) {
+  padding-right: 2.25rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+html,
+body {
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth horizontal scrolling for wide data tables and scrollable tab strips */
+[class*="overflow-x-auto"],
+[role="tablist"] {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Crisp responsive state transitions on interactive controls */
+a,
+button,
+summary,
+input,
+select,
+textarea {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Subtle accordion content reveal on FAQ <details> */
+details[open] > :not(summary) {
+  animation: accordion-open 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Smooth shimmer gradient for domain skeleton placeholders */
+.skeleton-shimmer {
+  background-color: #E8E8ED;
+  background-image: linear-gradient(
+    90deg,
+    #E8E8ED 0%,
+    #F5F6FB 45%,
+    #E8E8ED 90%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes accordion-open {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.material-symbols-outlined {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1 !important;
+  box-sizing: content-box;
+  overflow: hidden;
+  white-space: nowrap;
+  direction: ltr;
+  vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  [class*="overflow-x-auto"],
+  [role="tablist"] {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .skeleton-shimmer {
+    animation: none !important;
+    background-image: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
