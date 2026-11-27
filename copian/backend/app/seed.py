@@ -1,0 +1,1013 @@
+from datetime import date, timedelta
+from sqlalchemy.orm import Session
+from app.auth import hash_password
+from app.models import (
+    utc_now,
+    Role,
+    AdminUser,
+    Category,
+    Product,
+    PrinterModel,
+    ProductPrinterCompatibility,
+    Warehouse,
+    InventoryItem,
+    InventoryTransaction,
+    Customer,
+    Distributor,
+    BulkInquiry,
+    BulkInquiryItem,
+    Quotation,
+    QuotationItem,
+    Order,
+    OrderItem,
+    OrderTimeline,
+    CmsSetting,
+    Article,
+    Faq,
+    SeoRedirect,
+    AuditLog,
+)
+
+
+def seed_database(db: Session):
+    if db.query(Role).count() > 0:
+        return
+
+    # 1. Roles & Users
+    full_perms = {
+        "Products & Categories": {"view": True, "create": True, "edit": True, "delete": True, "approve": True, "export": True},
+        "Inventory & Stock Ledger": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Bulk Inquiries & Quotations": {"view": True, "create": True, "edit": True, "delete": True, "approve": True, "export": True},
+        "Orders & GST Invoices": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Customers & Distributors": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Website & SEO": {"view": True, "create": True, "edit": True, "delete": True, "approve": True, "export": False},
+        "Reports & Analytics": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": True},
+    }
+    inv_perms = {
+        "Products & Categories": {"view": True, "create": True, "edit": True, "delete": False, "approve": False, "export": True},
+        "Inventory & Stock Ledger": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Bulk Inquiries & Quotations": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": False},
+        "Orders & GST Invoices": {"view": True, "create": False, "edit": True, "delete": False, "approve": False, "export": False},
+        "Customers & Distributors": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": False},
+        "Website & SEO": {"view": False, "create": False, "edit": False, "delete": False, "approve": False, "export": False},
+        "Reports & Analytics": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": True},
+    }
+    sales_mgr_perms = {
+        "Products & Categories": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": True},
+        "Inventory & Stock Ledger": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": False},
+        "Bulk Inquiries & Quotations": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Orders & GST Invoices": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Customers & Distributors": {"view": True, "create": True, "edit": True, "delete": False, "approve": True, "export": True},
+        "Website & SEO": {"view": False, "create": False, "edit": False, "delete": False, "approve": False, "export": False},
+        "Reports & Analytics": {"view": True, "create": False, "edit": False, "delete": False, "approve": False, "export": True},
+    }
+
+    roles_data = [
+        Role(name="Super Admin", slug="super-admin", description="Full ERP & system administration access", permissions=full_perms),
+        Role(name="Inventory Manager", slug="inventory-manager", description="Warehouse stock, inward/outward & product catalog", permissions=inv_perms),
+        Role(name="Sales Manager", slug="sales-manager", description="Inquiries, quotation approval, CRM & distributor accounts", permissions=sales_mgr_perms),
+        Role(name="Sales Executive", slug="sales-executive", description="Bulk inquiry follow-ups & draft quotation builder", permissions=sales_mgr_perms),
+        Role(name="Order Manager", slug="order-manager", description="Order fulfilment, dispatch tracking & GST invoicing", permissions=sales_mgr_perms),
+        Role(name="Content Manager", slug="content-manager", description="Website banners, blog resources, FAQs & SEO redirects", permissions=full_perms),
+    ]
+    db.add_all(roles_data)
+    db.flush()
+
+    default_pw = hash_password("copian@2026")
+    admin_users = [
+        AdminUser(name="Arjun Mehta", initials="AM", email="arjun@copian.in", password_hash=default_pw, role_id=roles_data[0].id),
+        AdminUser(name="R. Sharma", initials="RS", email="sharma@copian.in", password_hash=default_pw, role_id=roles_data[1].id),
+        AdminUser(name="Rohan Deshmukh", initials="RD", email="rohan@copian.in", password_hash=default_pw, role_id=roles_data[2].id),
+        AdminUser(name="Priya Iyer", initials="PI", email="priya@copian.in", password_hash=default_pw, role_id=roles_data[3].id),
+    ]
+    db.add_all(admin_users)
+
+    # 2. Categories
+    cats = [
+        Category(
+            name="Toner Cartridges",
+            slug="toner-cartridges",
+            subtitle="HP, Canon, Brother, Ricoh, Kyocera",
+            description="Bulk-ready monochrome and color laser cartridges engineered for HP, Canon, Brother, Ricoh, and Kyocera enterprise printers.",
+            image_url="/images/toner-cartridge.png",
+            seo_guide="When sourcing compatible toner cartridges for corporate printer fleets or regional distribution, consistent optical density, chip firmware stability, and master-carton packaging protection are essential. Copian cartridges are built with fresh OPC drums and precision wiper blades to reduce service calls across high-volume print environments.",
+            display_order=1,
+        ),
+        Category(
+            name="Toner Powder",
+            slug="toner-powder",
+            subtitle="500g, 1kg, and 10kg industrial pouches",
+            description="High-density chemical and pulverized monochrome/color refill toner powder formulated for low waste and crisp fusing.",
+            image_url="/images/copian-banner-2.png",
+            seo_guide="Bulk toner powder packs reduce cost-per-page across high-volume print shops and cartridge remanufacturers while protecting fuser sleeves.",
+            display_order=2,
+        ),
+        Category(
+            name="OPC Drums",
+            slug="opc-drums",
+            subtitle="High-longevity organic photoconductor drums",
+            description="Multi-cycle coated organic photoconductor drums engineered for consistent electrostatic charging and extended drum life.",
+            image_url="/images/toner-img-2.png",
+            seo_guide="Precision OPC drum coatings minimize background fogging and double or triple cartridge rebuild cycles for dealers.",
+            display_order=3,
+        ),
+        Category(
+            name="Inkjet Ink",
+            slug="inkjet-ink",
+            subtitle="CMYK dye & pigment bulk refills",
+            description="High-saturation dye and pigment bulk inkjet ink bottles formulated for continuous ink tank systems and commercial print fleets.",
+            image_url="/images/copian-banner-5.png",
+            seo_guide="Filtered micro-particle inkjet formulations keep printhead nozzles clog-free across high-speed commercial ink tank printers.",
+            display_order=4,
+        ),
+        Category(
+            name="Components",
+            slug="components",
+            subtitle="Fuser rollers, blades, chips & gears",
+            description="PTFE-coated upper fuser rollers, doctor blades, smart chips, and pickup gears for scheduled fleet maintenance.",
+            image_url="/images/copian-banner-5.png",
+            seo_guide="OEM-grade replacement fuser assemblies and smart firmware chips extend hardware service life across enterprise laser printers.",
+            display_order=5,
+        ),
+    ]
+    db.add_all(cats)
+    db.flush()
+    cat_map = {c.name: c.id for c in cats}
+
+    # 3. Warehouses
+    warehouses = [
+        Warehouse(name="Mumbai Central", code="MUM-01", city="Mumbai", state="Maharashtra"),
+        Warehouse(name="Delhi NCR Hub", code="DEL-01", city="New Delhi", state="Delhi"),
+        Warehouse(name="Bengaluru South Depot", code="BLR-01", city="Bengaluru", state="Karnataka"),
+        Warehouse(name="Ahmedabad West Logistics", code="AMD-01", city="Ahmedabad", state="Gujarat"),
+    ]
+    db.add_all(warehouses)
+    db.flush()
+    wh_map = {w.name: w.id for w in warehouses}
+
+    # 4. Products
+    products_spec = [
+        {
+            "sku": "CPN-HP-88A",
+            "name": "Copian 88A Black Toner",
+            "slug": "copian-88a-black-toner",
+            "category_name": "Toner Cartridges",
+            "brand": "HP",
+            "oem_code": "CC388A",
+            "short_desc": "1,500-page ISO yield with precision virgin OPC drum.",
+            "detailed_desc": "Compatible high-density black laser toner cartridge engineered for HP LaserJet P1007, P1008, M1136, and M1213nf office printers.",
+            "page_yield": 1500,
+            "yield_text": "1,500 pages @ 5% A4 coverage",
+            "weight_grams": "690g",
+            "chip_included": "Yes — Firmware-compatible smart chip",
+            "master_carton_qty": 20,
+            "moq": 10,
+            "moq_unit": "units",
+            "dealer_price": 420.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "HP LaserJet P1007, P1008, M1136, M1213nf",
+            "compatible_models": ["HP LaserJet P1007", "HP LaserJet P1008", "HP LaserJet Pro M1136 MFP", "HP LaserJet M1213nf"],
+            "variants": [
+                {"label": "Standard Yield (88A)", "code": "CPN-HP-88A", "yield_text": "1,500 pages", "moq": 10, "dealer_price": 420},
+                {"label": "Jumbo Yield (88X)", "code": "CPN-HP-88X", "yield_text": "2,600 pages", "moq": 10, "dealer_price": 560},
+            ],
+            "features": [
+                "Formulated with uniform spherical toner particles for sharp 1200 dpi black text and minimal waste hopper buildup.",
+                "Each unit is sealed in anti-static airbag cushioning inside a neutral or Copian-branded retail carton.",
+            ],
+            "image_url": "/images/toner-cartridge.png",
+            "gallery_images": ["/images/toner-cartridge.png", "/images/hero-banner.png", "/images/toner-img-2.png", "/images/copian-banner-5.png"],
+            "is_featured": True,
+            "is_new_arrival": False,
+            "stock_status": "In Stock",
+            "wh": "Mumbai Central",
+            "avail": 1420,
+            "res": 120,
+            "reorder": 200,
+        },
+        {
+            "sku": "CPN-HP-26A",
+            "name": "Copian 26A Enterprise Toner",
+            "slug": "copian-26a-enterprise-toner",
+            "category_name": "Toner Cartridges",
+            "brand": "HP",
+            "oem_code": "CF226A",
+            "short_desc": "3,100-page enterprise cartridge with smart chip.",
+            "detailed_desc": "OEM Reference: CF226A · Engineered for high-duty-cycle HP LaserJet Pro M402 & M426 enterprise fleets.",
+            "page_yield": 3100,
+            "yield_text": "3,100 pages @ 5% A4 coverage",
+            "weight_grams": "840g",
+            "chip_included": "Yes — Firmware-compatible smart chip",
+            "master_carton_qty": 20,
+            "moq": 10,
+            "moq_unit": "units",
+            "dealer_price": 680.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "HP LaserJet Pro M402dn, M426fdw",
+            "compatible_models": ["HP LaserJet Pro M402d", "HP LaserJet Pro M402dn", "HP LaserJet Pro M402dw", "HP LaserJet Pro MFP M426dw", "HP LaserJet Pro MFP M426fdn", "HP LaserJet Pro MFP M426fdw"],
+            "variants": [
+                {"label": "Standard Yield (26A)", "code": "CPN-HP-26A", "yield_text": "3,100 pages", "moq": 10, "dealer_price": 680},
+                {"label": "High Yield (26X)", "code": "CPN-HP-26X", "yield_text": "9,000 pages", "moq": 10, "dealer_price": 1120},
+            ],
+            "features": [
+                "Formulated with spherical, uniform-particle magnetic toner powder for crisp 1200 dpi text density and minimal waste hopper buildup.",
+                "Each unit is sealed in anti-static airbag cushioning inside a neutral or Copian-branded retail carton for safe pan-India transit.",
+            ],
+            "image_url": "/images/hero-banner.png",
+            "gallery_images": ["/images/hero-banner.png", "/images/toner-img-2.png", "/images/copian-banner-2.png", "/images/copian-banner-5.png"],
+            "is_featured": True,
+            "is_new_arrival": False,
+            "stock_status": "In Stock",
+            "wh": "Mumbai Central",
+            "avail": 680,
+            "res": 60,
+            "reorder": 120,
+        },
+        {
+            "sku": "CPN-HP-26X",
+            "name": "Copian 26X High-Yield Toner",
+            "slug": "copian-26x-high-yield-toner",
+            "category_name": "Toner Cartridges",
+            "brand": "HP",
+            "oem_code": "CF226X",
+            "short_desc": "9,000-page high-capacity enterprise laser cartridge.",
+            "detailed_desc": "High-yield CF226X compatible cartridge designed for managed print fleets requiring extended replacement intervals.",
+            "page_yield": 9000,
+            "yield_text": "9,000 pages @ 5% A4 coverage",
+            "weight_grams": "1080g",
+            "chip_included": "Yes — Firmware-compatible smart chip",
+            "master_carton_qty": 16,
+            "moq": 10,
+            "moq_unit": "units",
+            "dealer_price": 1120.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "HP LaserJet Pro M402dn, M426fdw, M402dw",
+            "compatible_models": ["HP LaserJet Pro M402dn", "HP LaserJet Pro M402dw", "HP LaserJet Pro MFP M426fdw"],
+            "variants": [
+                {"label": "High Yield (26X)", "code": "CPN-HP-26X", "yield_text": "9,000 pages", "moq": 10, "dealer_price": 1120},
+            ],
+            "features": [
+                "Extended hopper capacity delivers 9,000 ISO-tested pages with zero density drop-off.",
+                "Reinforced gear train built for high-speed 38 ppm enterprise duplex printing.",
+            ],
+            "image_url": "/images/copian-banner-5.png",
+            "gallery_images": ["/images/copian-banner-5.png", "/images/hero-banner.png", "/images/toner-img-2.png"],
+            "is_featured": False,
+            "is_new_arrival": False,
+            "stock_status": "In Stock",
+            "wh": "Bengaluru South Depot",
+            "avail": 310,
+            "res": 40,
+            "reorder": 80,
+        },
+        {
+            "sku": "CPN-CN-337",
+            "name": "Copian 337 High-Density Toner",
+            "slug": "copian-337-high-density-toner",
+            "category_name": "Toner Cartridges",
+            "brand": "Canon",
+            "oem_code": "CRG-337",
+            "short_desc": "2,400-page crisp black output for office fleets.",
+            "detailed_desc": "Precision Canon CRG-337 compatible cartridge with Japanese OPC drum and low-melt toner formulation.",
+            "page_yield": 2400,
+            "yield_text": "2,400 pages @ 5% A4 coverage",
+            "weight_grams": "740g",
+            "chip_included": "Yes — Auto-reset Canon chip",
+            "master_carton_qty": 20,
+            "moq": 10,
+            "moq_unit": "units",
+            "dealer_price": 490.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "Canon imageCLASS MF232w, MF244dw",
+            "compatible_models": ["Canon imageCLASS MF232w", "Canon imageCLASS MF244dw", "Canon imageCLASS MF211", "Canon imageCLASS LBP151dw"],
+            "variants": [
+                {"label": "Standard Yield (337)", "code": "CPN-CN-337", "yield_text": "2,400 pages", "moq": 10, "dealer_price": 490},
+            ],
+            "features": [
+                "Crisp 1200 dpi black optical density optimized for Canon imageCLASS fusers.",
+                "Sealed individual retail box with moisture barrier.",
+            ],
+            "image_url": "/images/copian-banner-2.png",
+            "gallery_images": ["/images/copian-banner-2.png", "/images/toner-cartridge.png", "/images/toner-img-2.png"],
+            "is_featured": False,
+            "is_new_arrival": False,
+            "stock_status": "Low Stock",
+            "wh": "Delhi NCR Hub",
+            "avail": 24,
+            "res": 5,
+            "reorder": 100,
+        },
+        {
+            "sku": "CPN-PWD-1KG",
+            "name": "Universal Toner Powder (1kg)",
+            "slug": "universal-toner-powder-1kg",
+            "category_name": "Toner Powder",
+            "brand": "HP",
+            "oem_code": "Universal",
+            "short_desc": "Low-waste polymerized refill powder in 1kg pouch.",
+            "detailed_desc": "Ultra-fine chemical and pulverized universal laser toner powder in moisture-sealed 1kg bulk pouches for HP and Canon cartridges.",
+            "page_yield": 18000,
+            "yield_text": "18,000 pages per 1kg pack",
+            "weight_grams": "1000g",
+            "chip_included": "No — Bulk Refill Pack",
+            "master_carton_qty": 20,
+            "moq": 20,
+            "moq_unit": "bottles",
+            "dealer_price": 650.0,
+            "gst_rate": 18,
+            "hsn_code": "3707",
+            "compatible_printers_text": "HP / Canon Monochrome Laser Series",
+            "compatible_models": ["HP LaserJet 12A / 88A / 78A / 36A", "Canon CRG-303 / CRG-325 / CRG-337"],
+            "variants": [
+                {"label": "1kg Pouch / Bottle", "code": "CPN-PWD-1KG", "yield_text": "18,000 pages", "moq": 20, "dealer_price": 650},
+                {"label": "10kg Master Sack", "code": "CPN-PWD-10KG", "yield_text": "180,000 pages", "moq": 5, "dealer_price": 5900},
+            ],
+            "features": [
+                "Low-waste particle size distribution prevents doctor blade streaking and backgrounding.",
+                "Aluminum foil heat-sealed pouch with spout for clean refill station pouring.",
+            ],
+            "image_url": "/images/copian-banner-2.png",
+            "gallery_images": ["/images/copian-banner-2.png", "/images/copian-banner-5.png"],
+            "is_featured": True,
+            "is_new_arrival": False,
+            "stock_status": "In Stock",
+            "wh": "Mumbai Central",
+            "avail": 640,
+            "res": 40,
+            "reorder": 120,
+        },
+        {
+            "sku": "CPN-OPC-12A",
+            "name": "Long-Life OPC Drum Unit",
+            "slug": "long-life-opc-drum-unit",
+            "category_name": "OPC Drums",
+            "brand": "HP",
+            "oem_code": "Q2612A-OPC",
+            "short_desc": "Multi-cycle organic photoconductor drum coating.",
+            "detailed_desc": "Multi-cycle green-coat organic photoconductor (OPC) drum cylinder compatible with 12A, 88A, and 337 cartridge assemblies.",
+            "page_yield": 12000,
+            "yield_text": "12,000 pages (up to 4 rebuild cycles)",
+            "weight_grams": "165g",
+            "chip_included": "N/A — Mechanical Drum Cylinder",
+            "master_carton_qty": 50,
+            "moq": 25,
+            "moq_unit": "units",
+            "dealer_price": 145.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "12A / 88A / 337 Cartridge Assemblies",
+            "compatible_models": ["HP 12A / 88A / 36A / 78A", "Canon 303 / 325 / 328 / 337"],
+            "variants": [
+                {"label": "Single OPC Drum", "code": "CPN-OPC-12A", "yield_text": "12,000 pages", "moq": 25, "dealer_price": 145},
+            ],
+            "features": [
+                "High-sensitivity organic coating resists abrasion and light fatigue across multiple refill cycles.",
+                "Packed in individual UV-shielded foam sleeves inside 50-unit master cartons.",
+            ],
+            "image_url": "/images/toner-img-2.png",
+            "gallery_images": ["/images/toner-img-2.png", "/images/toner-cartridge.png"],
+            "is_featured": True,
+            "is_new_arrival": False,
+            "stock_status": "MOQ 25",
+            "wh": "Delhi NCR Hub",
+            "avail": 18,
+            "res": 10,
+            "reorder": 100,
+        },
+        {
+            "sku": "CPN-OPC-26A",
+            "name": "OPC Drum Cylinder (26A/26X)",
+            "slug": "opc-drum-cylinder-26a",
+            "category_name": "OPC Drums",
+            "brand": "HP",
+            "oem_code": "CF226-OPC",
+            "short_desc": "Enterprise OPC drum for HP M402 / M426 series.",
+            "detailed_desc": "Heavy-duty OPC cylinder engineered for high-speed 26A/26X enterprise toner assemblies.",
+            "page_yield": 15000,
+            "yield_text": "15,000 pages",
+            "weight_grams": "210g",
+            "chip_included": "N/A — Mechanical Drum Cylinder",
+            "master_carton_qty": 40,
+            "moq": 25,
+            "moq_unit": "units",
+            "dealer_price": 195.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "HP LaserJet Pro M402 / M426 Cartridges",
+            "compatible_models": ["HP LaserJet Pro M402dn", "HP LaserJet Pro MFP M426fdw"],
+            "variants": [
+                {"label": "26A/26X OPC Drum", "code": "CPN-OPC-26A", "yield_text": "15,000 pages", "moq": 25, "dealer_price": 195},
+            ],
+            "features": [
+                "Precision-balanced aluminum core ensures vibration-free rotation at 38+ ppm.",
+            ],
+            "image_url": "/images/toner-img-2.png",
+            "gallery_images": ["/images/toner-img-2.png", "/images/hero-banner.png"],
+            "is_featured": False,
+            "is_new_arrival": False,
+            "stock_status": "In Stock",
+            "wh": "Mumbai Central",
+            "avail": 320,
+            "res": 20,
+            "reorder": 50,
+        },
+        {
+            "sku": "CPN-INK-CMYK",
+            "name": "Copian CMYK Inkjet Bottle Set",
+            "slug": "copian-cmyk-inkjet-bottle-set",
+            "category_name": "Inkjet Ink",
+            "brand": "Brother",
+            "oem_code": "BTD60-CMYK",
+            "short_desc": "4 x 100ml high-saturation dye & pigment ink bottles.",
+            "detailed_desc": "4 x 100ml bulk CMYK ink bottle pack engineered for Brother InkBenefit, Canon MegaTank, and Epson EcoTank fleet printers.",
+            "page_yield": 6500,
+            "yield_text": "6,500 color / 7,500 black pages",
+            "weight_grams": "480g",
+            "chip_included": "N/A — Ink Refill Set",
+            "master_carton_qty": 25,
+            "moq": 15,
+            "moq_unit": "sets",
+            "dealer_price": 540.0,
+            "gst_rate": 18,
+            "hsn_code": "3215",
+            "compatible_printers_text": "Brother InkBenefit / Epson EcoTank",
+            "compatible_models": ["Brother DCP-T520W", "Brother DCP-T820DW", "Epson EcoTank L3250", "Canon MegaTank G3010"],
+            "variants": [
+                {"label": "4-Color CMYK Set (4x100ml)", "code": "CPN-INK-CMYK", "yield_text": "6,500 pages", "moq": 15, "dealer_price": 540},
+            ],
+            "features": [
+                "Sub-micron filtered dye/pigment formulation prevents printhead clogging.",
+                "Drip-free precision spout caps for clean dealer/office tank refilling.",
+            ],
+            "image_url": "/images/copian-banner-5.png",
+            "gallery_images": ["/images/copian-banner-5.png", "/images/copian-banner-2.png"],
+            "is_featured": False,
+            "is_new_arrival": True,
+            "stock_status": "In Stock",
+            "wh": "Ahmedabad West Logistics",
+            "avail": 410,
+            "res": 30,
+            "reorder": 80,
+        },
+        {
+            "sku": "CPN-FUS-402",
+            "name": "Precision Upper Fuser Roller",
+            "slug": "precision-upper-fuser-roller",
+            "category_name": "Components",
+            "brand": "HP",
+            "oem_code": "RM2-5399",
+            "short_desc": "HP M402 / M426 Series · PTFE Coated",
+            "detailed_desc": "Industrial PTFE-coated upper fuser heat roller engineered for HP LaserJet Pro M402 and M426 series maintenance.",
+            "page_yield": 100000,
+            "yield_text": "100,000 pages rated life",
+            "weight_grams": "320g",
+            "chip_included": "N/A — Mechanical Fuser Component",
+            "master_carton_qty": 25,
+            "moq": 5,
+            "moq_unit": "units",
+            "dealer_price": 890.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "HP LaserJet Pro M402dn, M426fdw",
+            "compatible_models": ["HP LaserJet Pro M402d", "HP LaserJet Pro M402dn", "HP LaserJet Pro MFP M426fdw"],
+            "variants": [
+                {"label": "Upper Fuser Roller (M402)", "code": "CPN-FUS-402", "yield_text": "100,000 pages", "moq": 5, "dealer_price": 890},
+            ],
+            "features": [
+                "Non-stick Japanese PTFE outer sleeve prevents toner offset and paper wrap jams.",
+            ],
+            "image_url": "/images/copian-banner-5.png",
+            "gallery_images": ["/images/copian-banner-5.png", "/images/toner-img-2.png"],
+            "is_featured": False,
+            "is_new_arrival": True,
+            "stock_status": "Out of Stock",
+            "wh": "Mumbai Central",
+            "avail": 0,
+            "res": 0,
+            "reorder": 25,
+        },
+        {
+            "sku": "CPN-BR-2365",
+            "name": "Copian TN-2365 Black Toner",
+            "slug": "copian-tn-2365-black-toner",
+            "category_name": "Toner Cartridges",
+            "brand": "Brother",
+            "oem_code": "TN-2365",
+            "short_desc": "2,600-page Brother HL-L2321D / DCP-L2520D toner.",
+            "detailed_desc": "High-yield TN-2365 compatible black laser toner cartridge engineered for Brother HL and DCP monochrome laser printers.",
+            "page_yield": 2600,
+            "yield_text": "2,600 pages @ 5% A4 coverage",
+            "weight_grams": "710g",
+            "chip_included": "Yes — Mechanical Flag Gear Reset",
+            "master_carton_qty": 20,
+            "moq": 10,
+            "moq_unit": "units",
+            "dealer_price": 460.0,
+            "gst_rate": 18,
+            "hsn_code": "8443",
+            "compatible_printers_text": "Brother HL-L2321D, HL-L2361DN, DCP-L2520D",
+            "compatible_models": ["HL-L2321D", "Brother HL-L2321D", "Brother DCP-L2520D", "Brother MFC-L2701DW"],
+            "variants": [
+                {"label": "Standard TN-2365", "code": "CPN-BR-2365", "yield_text": "2,600 pages", "moq": 10, "dealer_price": 460},
+            ],
+            "features": [
+                "Precision flag gear reset assembly for instant printer recognition.",
+            ],
+            "image_url": "/images/toner-cartridge.png",
+            "gallery_images": ["/images/toner-cartridge.png", "/images/copian-banner-5.png"],
+            "is_featured": False,
+            "is_new_arrival": False,
+            "stock_status": "In Stock",
+            "wh": "Bengaluru South Depot",
+            "avail": 390,
+            "res": 20,
+            "reorder": 80,
+        },
+    ]
+
+    prod_objs = {}
+    for spec in products_spec:
+        wh_name = spec.pop("wh")
+        avail = spec.pop("avail")
+        res = spec.pop("res")
+        reorder = spec.pop("reorder")
+        p = Product(
+            category_id=cat_map[spec["category_name"]],
+            seo_title=f"{spec['name']} | Copian B2B Bulk Supplies",
+            meta_description=spec["short_desc"],
+            **spec,
+        )
+        db.add(p)
+        db.flush()
+        prod_objs[p.sku] = p
+
+        inv = InventoryItem(
+            product_id=p.id,
+            warehouse_id=wh_map[wh_name],
+            available_qty=avail,
+            reserved_qty=res,
+            reorder_level=reorder,
+            suggested_reorder_qty=max(reorder * 3, 100),
+        )
+        db.add(inv)
+
+    # 5. Printer Models & Compatibility Map
+    printers = [
+        PrinterModel(brand="HP", model_name="LaserJet Pro M402dn", series="LaserJet Pro M400"),
+        PrinterModel(brand="HP", model_name="LaserJet Pro M1136 MFP", series="LaserJet Pro M1100"),
+        PrinterModel(brand="HP", model_name="LaserJet P1007 / P1008", series="LaserJet P1000"),
+        PrinterModel(brand="Canon", model_name="imageCLASS MF232w", series="imageCLASS MF230"),
+        PrinterModel(brand="Canon", model_name="imageCLASS MF244dw", series="imageCLASS MF240"),
+        PrinterModel(brand="Brother", model_name="HL-L2321D", series="Brother HL Series"),
+        PrinterModel(brand="Brother", model_name="InkBenefit DCP-T520W", series="InkBenefit Tank"),
+        PrinterModel(brand="Ricoh", model_name="Aficio SP 210", series="SP Monochrome"),
+    ]
+    db.add_all(printers)
+    db.flush()
+    pm = {f"{x.brand}:{x.model_name}": x.id for x in printers}
+
+    compat_links = [
+        ("CPN-HP-26A", "HP:LaserJet Pro M402dn"),
+        ("CPN-HP-26X", "HP:LaserJet Pro M402dn"),
+        ("CPN-FUS-402", "HP:LaserJet Pro M402dn"),
+        ("CPN-OPC-26A", "HP:LaserJet Pro M402dn"),
+        ("CPN-HP-88A", "HP:LaserJet Pro M1136 MFP"),
+        ("CPN-PWD-1KG", "HP:LaserJet Pro M1136 MFP"),
+        ("CPN-OPC-12A", "HP:LaserJet Pro M1136 MFP"),
+        ("CPN-HP-88A", "HP:LaserJet P1007 / P1008"),
+        ("CPN-PWD-1KG", "HP:LaserJet P1007 / P1008"),
+        ("CPN-OPC-12A", "HP:LaserJet P1007 / P1008"),
+        ("CPN-CN-337", "Canon:imageCLASS MF232w"),
+        ("CPN-PWD-1KG", "Canon:imageCLASS MF232w"),
+        ("CPN-OPC-12A", "Canon:imageCLASS MF232w"),
+        ("CPN-CN-337", "Canon:imageCLASS MF244dw"),
+        ("CPN-BR-2365", "Brother:HL-L2321D"),
+        ("CPN-INK-CMYK", "Brother:InkBenefit DCP-T520W"),
+        ("CPN-PWD-1KG", "Ricoh:Aficio SP 210"),
+    ]
+    for sku, pkey in compat_links:
+        if sku in prod_objs and pkey in pm:
+            db.add(ProductPrinterCompatibility(product_id=prod_objs[sku].id, printer_model_id=pm[pkey]))
+
+    # 6. Inventory Transactions
+    db.add_all([
+        InventoryTransaction(
+            txn_code="TXN-9041",
+            product_id=prod_objs["CPN-HP-88A"].id,
+            warehouse_id=wh_map["Mumbai Central"],
+            txn_type="Inward",
+            prev_qty=920,
+            delta_qty=500,
+            new_qty=1420,
+            reference_code="PO-2026-0910",
+            reason="Master carton consignment received",
+            performed_by="R. Sharma",
+            created_at=utc_now() - timedelta(days=1),
+        ),
+        InventoryTransaction(
+            txn_code="TXN-9040",
+            product_id=prod_objs["CPN-OPC-12A"].id,
+            warehouse_id=wh_map["Delhi NCR Hub"],
+            txn_type="Outward",
+            prev_qty=68,
+            delta_qty=-50,
+            new_qty=18,
+            reference_code="ORD-2026-1088",
+            reason="B2B Order Fulfilment",
+            performed_by="A. Mehta",
+            created_at=utc_now() - timedelta(hours=14),
+        ),
+        InventoryTransaction(
+            txn_code="TXN-9039",
+            product_id=prod_objs["CPN-HP-26A"].id,
+            warehouse_id=wh_map["Mumbai Central"],
+            txn_type="Inward",
+            prev_qty=480,
+            delta_qty=200,
+            new_qty=680,
+            reference_code="PO-2026-0905",
+            reason="Quarterly stock replenishment",
+            performed_by="R. Sharma",
+            created_at=utc_now() - timedelta(days=3),
+        ),
+    ])
+
+    # 7. Customers
+    customers = [
+        Customer(
+            company_name="Apex Managed Print Pvt. Ltd.",
+            contact_name="Vikram Nair",
+            phone="+91 98204 55110",
+            email="procurement@apexprint.in",
+            gstin="27AABCU9603R1ZM",
+            city="Mumbai",
+            state="Maharashtra",
+            pincode="400001",
+            classification="Corporate Buyer",
+            notes="Quarterly standing order for CPN-HP-88A and CPN-HP-26A with neutral carton packaging.",
+        ),
+        Customer(
+            company_name="Deccan Office Supplies",
+            contact_name="Karthik Rao",
+            phone="+91 98450 22311",
+            email="orders@deccanoffice.in",
+            gstin="29AAACD1234F1Z5",
+            city="Bengaluru",
+            state="Karnataka",
+            pincode="560002",
+            classification="Dealer",
+            notes="Priority South India dealer on 30-day credit line.",
+        ),
+        Customer(
+            company_name="Capital Print Hub",
+            contact_name="Neha Kapoor",
+            phone="+91 98112 77420",
+            email="neha@capitalprinthub.in",
+            gstin="07AAACB5678H1Z2",
+            city="New Delhi",
+            state="Delhi",
+            pincode="110019",
+            classification="Wholesaler",
+            notes="High-volume bulk toner powder and OPC drum buyer.",
+        ),
+    ]
+    db.add_all(customers)
+    db.flush()
+
+    # 8. Distributors
+    db.add_all([
+        Distributor(
+            name="Western Print Consumables Hub",
+            city="Mumbai",
+            state="Maharashtra",
+            territory="West India",
+            address="Lamington Road, Grant Road East, Mumbai 400007",
+            phone="+91 22 2389 4410",
+            email="west@copian.in",
+            gstin="27AAACW4410G1Z1",
+            status="Active",
+            associated_dealers=42,
+            ytd_orders_value=4680000.0,
+        ),
+        Distributor(
+            name="Capital Imaging & Supplies",
+            city="New Delhi",
+            state="Delhi NCR",
+            territory="North India",
+            address="Nehru Place Commercial Complex, New Delhi 110019",
+            phone="+91 11 4160 8820",
+            email="north@copian.in",
+            gstin="07AAACC8820L1Z9",
+            status="Active",
+            associated_dealers=38,
+            ytd_orders_value=3920000.0,
+        ),
+        Distributor(
+            name="Deccan Enterprise Print Solutions",
+            city="Bengaluru",
+            state="Karnataka",
+            territory="South India",
+            address="SP Road, Chickpet, Bengaluru 560002",
+            phone="+91 80 4112 7730",
+            email="south@copian.in",
+            gstin="29AAACD7730P1Z4",
+            status="Active",
+            associated_dealers=29,
+            ytd_orders_value=3140000.0,
+        ),
+        Distributor(
+            name="Gujarat Toner & Drum Depot",
+            city="Ahmedabad",
+            state="Gujarat",
+            territory="West India",
+            address="Relief Road, Kalupur, Ahmedabad 380001",
+            phone="+91 79 2214 5590",
+            email="gujarat@copian.in",
+            gstin="24AAACG5590K1Z7",
+            status="Active",
+            associated_dealers=24,
+            ytd_orders_value=2450000.0,
+        ),
+        Distributor(
+            name="Eastern Office Tech Distributors",
+            city="Kolkata",
+            state="West Bengal",
+            territory="East India",
+            address="Chandni Chowk Market, Kolkata 700072",
+            phone="+91 33 2212 3340",
+            email="east@copian.in",
+            gstin="19AAACE3340M1Z3",
+            status="Active",
+            associated_dealers=19,
+            ytd_orders_value=1870000.0,
+        ),
+        Distributor(
+            name="Coromandel Print Partners",
+            city="Chennai",
+            state="Tamil Nadu",
+            territory="South India",
+            address="Ritchie Street, Mount Road, Chennai 600002",
+            phone="+91 44 2851 6620",
+            email="chennai@copian.in",
+            gstin="33AAACC6620R1Z8",
+            status="Active",
+            associated_dealers=21,
+            ytd_orders_value=2190000.0,
+        ),
+    ])
+
+    # 9. Bulk Inquiries
+    inq1 = BulkInquiry(
+        inquiry_code="INQ-4812",
+        customer_id=customers[0].id,
+        company_name="Apex Managed Print Pvt. Ltd.",
+        contact_name="Vikram Nair",
+        phone="+91 98204 55110",
+        email="procurement@apexprint.in",
+        gstin="27AABCU9603R1ZM",
+        delivery_city="Mumbai 400001",
+        notes="Prefer neutral carton packaging for managed print client deployment.",
+        status="New",
+        assigned_salesperson="Rohan Deshmukh",
+        internal_note="Eligible for Tier-2 volume discount.",
+        source="Website Cart",
+        created_at=utc_now() - timedelta(hours=2),
+    )
+    inq2 = BulkInquiry(
+        inquiry_code="INQ-4811",
+        customer_id=customers[1].id,
+        company_name="Deccan Office Supplies",
+        contact_name="Karthik Rao",
+        phone="+91 98450 22311",
+        email="orders@deccanoffice.in",
+        gstin="29AAACD1234F1Z5",
+        delivery_city="Bengaluru 560002",
+        notes="Monthly replenishment request.",
+        status="Quotation Sent",
+        assigned_salesperson="Priya Iyer",
+        internal_note="Proforma quote QT-2026-0841 emailed.",
+        source="Website Cart",
+        created_at=utc_now() - timedelta(days=1),
+    )
+    inq3 = BulkInquiry(
+        inquiry_code="INQ-4809",
+        customer_id=customers[2].id,
+        company_name="Capital Print Hub",
+        contact_name="Neha Kapoor",
+        phone="+91 98112 77420",
+        email="neha@capitalprinthub.in",
+        gstin="07AAACB5678H1Z2",
+        delivery_city="New Delhi 110019",
+        notes="Urgent dispatch required.",
+        status="Approved",
+        assigned_salesperson="Rohan Deshmukh",
+        internal_note="Approved by Sales Manager.",
+        source="Website Cart",
+        created_at=utc_now() - timedelta(days=2),
+    )
+    db.add_all([inq1, inq2, inq3])
+    db.flush()
+
+    db.add_all([
+        BulkInquiryItem(inquiry_id=inq1.id, product_id=prod_objs["CPN-HP-88A"].id, sku="CPN-HP-88A", product_name="Copian 88A Black Toner", quantity=40, unit_note="Neutral box packaging"),
+        BulkInquiryItem(inquiry_id=inq1.id, product_id=prod_objs["CPN-PWD-1KG"].id, sku="CPN-PWD-1KG", product_name="Universal Toner Powder (1kg)", quantity=20, unit_note="Sealed master carton"),
+        BulkInquiryItem(inquiry_id=inq1.id, product_id=prod_objs["CPN-OPC-12A"].id, sku="CPN-OPC-12A", product_name="Long-Life OPC Drum Unit", quantity=50, unit_note="Standard foam sleeves"),
+        BulkInquiryItem(inquiry_id=inq2.id, product_id=prod_objs["CPN-HP-26A"].id, sku="CPN-HP-26A", product_name="Copian 26A Enterprise Toner", quantity=150, unit_note="Copian branded"),
+        BulkInquiryItem(inquiry_id=inq2.id, product_id=prod_objs["CPN-HP-88A"].id, sku="CPN-HP-88A", product_name="Copian 88A Black Toner", quantity=100, unit_note=""),
+        BulkInquiryItem(inquiry_id=inq3.id, product_id=prod_objs["CPN-PWD-1KG"].id, sku="CPN-PWD-1KG", product_name="Universal Toner Powder (1kg)", quantity=80, unit_note=""),
+    ])
+
+    # 10. Quotations
+    qt1 = Quotation(
+        quote_code="QT-2026-0842",
+        inquiry_id=inq1.id,
+        customer_id=customers[0].id,
+        customer_name="Apex Managed Print Pvt. Ltd.",
+        customer_email="procurement@apexprint.in",
+        customer_phone="+91 98204 55110",
+        customer_gstin="27AABCU9603R1ZM",
+        valid_until=date(2026, 12, 10),
+        gst_rate=18,
+        gst_label="18% IGST / CGST+SGST",
+        subtotal=37050.0,
+        discount_amount=1050.0,
+        shipping_amount=800.0,
+        gst_amount=6624.0,
+        grand_total=43424.0,
+        status="Draft",
+        notes="Tier-2 bulk quotation valid for 14 days.",
+    )
+    qt2 = Quotation(
+        quote_code="QT-2026-0841",
+        inquiry_id=inq2.id,
+        customer_id=customers[1].id,
+        customer_name="Deccan Office Supplies",
+        customer_email="orders@deccanoffice.in",
+        customer_phone="+91 98450 22311",
+        customer_gstin="29AAACD1234F1Z5",
+        valid_until=date(2026, 12, 15),
+        gst_rate=18,
+        gst_label="18% IGST / CGST+SGST",
+        subtotal=144000.0,
+        discount_amount=4000.0,
+        shipping_amount=1200.0,
+        gst_amount=25416.0,
+        grand_total=166616.0,
+        status="Sent",
+        notes="Sent via PDF & WhatsApp.",
+    )
+    db.add_all([qt1, qt2])
+    db.flush()
+
+    db.add_all([
+        QuotationItem(quotation_id=qt1.id, product_id=prod_objs["CPN-HP-88A"].id, sku="CPN-HP-88A", product_name="Copian 88A Black Toner", quantity=40, unit_price=420.0, line_total=16800.0),
+        QuotationItem(quotation_id=qt1.id, product_id=prod_objs["CPN-PWD-1KG"].id, sku="CPN-PWD-1KG", product_name="Universal Toner Powder (1kg)", quantity=20, unit_price=650.0, line_total=13000.0),
+        QuotationItem(quotation_id=qt1.id, product_id=prod_objs["CPN-OPC-12A"].id, sku="CPN-OPC-12A", product_name="Long-Life OPC Drum Unit", quantity=50, unit_price=145.0, line_total=7250.0),
+        QuotationItem(quotation_id=qt2.id, product_id=prod_objs["CPN-HP-26A"].id, sku="CPN-HP-26A", product_name="Copian 26A Enterprise Toner", quantity=150, unit_price=680.0, line_total=102000.0),
+        QuotationItem(quotation_id=qt2.id, product_id=prod_objs["CPN-HP-88A"].id, sku="CPN-HP-88A", product_name="Copian 88A Black Toner", quantity=100, unit_price=420.0, line_total=42000.0),
+    ])
+
+    # 11. Orders
+    ord1 = Order(
+        order_code="ORD-1092",
+        invoice_code="INV-2026-441",
+        quotation_id=qt2.id,
+        inquiry_id=inq2.id,
+        customer_id=customers[1].id,
+        customer_name="Deccan Office Supplies",
+        shipping_address="SP Road, Chickpet, Bengaluru 560002, Karnataka",
+        gstin="29AAACD1234F1Z5",
+        subtotal=100338.98,
+        gst_amount=18061.02,
+        total_amount=118400.0,
+        payment_status="Paid",
+        fulfilment_status="Ready to Dispatch",
+        created_at=utc_now() - timedelta(days=1),
+    )
+    ord2 = Order(
+        order_code="ORD-1091",
+        invoice_code="INV-2026-440",
+        inquiry_id=inq3.id,
+        customer_id=customers[2].id,
+        customer_name="Capital Print Hub",
+        shipping_address="Nehru Place Commercial Complex, New Delhi 110019",
+        gstin="07AAACB5678H1Z2",
+        subtotal=54406.78,
+        gst_amount=9793.22,
+        total_amount=64200.0,
+        payment_status="Credit 30d",
+        fulfilment_status="Dispatched",
+        created_at=utc_now() - timedelta(days=3),
+    )
+    db.add_all([ord1, ord2])
+    db.flush()
+
+    db.add_all([
+        OrderItem(order_id=ord1.id, product_id=prod_objs["CPN-HP-26A"].id, sku="CPN-HP-26A", product_name="Copian 26A Enterprise Toner", quantity=120, unit_price=680.0, line_total=81600.0),
+        OrderItem(order_id=ord1.id, product_id=prod_objs["CPN-HP-88A"].id, sku="CPN-HP-88A", product_name="Copian 88A Black Toner", quantity=45, unit_price=416.42, line_total=18738.98),
+        OrderItem(order_id=ord2.id, product_id=prod_objs["CPN-PWD-1KG"].id, sku="CPN-PWD-1KG", product_name="Universal Toner Powder (1kg)", quantity=80, unit_price=680.08, line_total=54406.78),
+    ])
+
+    db.add_all([
+        OrderTimeline(order_id=ord1.id, event_title="Confirmed & Stock Reserved", is_highlighted=False, created_at=utc_now() - timedelta(days=1, hours=4)),
+        OrderTimeline(order_id=ord1.id, event_title="GST Invoice Generated", is_highlighted=False, created_at=utc_now() - timedelta(days=1)),
+        OrderTimeline(order_id=ord1.id, event_title="Master Cartons Packed", is_highlighted=True, created_at=utc_now() - timedelta(hours=3)),
+        OrderTimeline(order_id=ord2.id, event_title="Confirmed & Stock Reserved", is_highlighted=False, created_at=utc_now() - timedelta(days=3)),
+        OrderTimeline(order_id=ord2.id, event_title="GST Invoice Generated", is_highlighted=False, created_at=utc_now() - timedelta(days=2)),
+        OrderTimeline(order_id=ord2.id, event_title="Dispatched via BlueDart Surface Freight", is_highlighted=True, created_at=utc_now() - timedelta(days=1)),
+    ])
+
+    # 12. CMS Settings, Articles, FAQs, Redirects
+    db.add_all([
+        CmsSetting(
+            key="seo",
+            value={
+                "meta_title": "Copian — B2B Compatible Toner Cartridges, OPC Drums & Printer Supplies",
+                "meta_description": "Bulk B2B supplier of OEM-compatible laser toner cartridges, toner powder, OPC drums, and printer components across India.",
+                "canonical_url": "https://copian.in/",
+                "robots_directive": "index, follow",
+                "sitemap_urls_count": 412,
+            },
+        ),
+        CmsSetting(
+            key="homepage",
+            value={
+                "hero_badge": "Trusted Since 1997 · Enterprise & Dealer Supply",
+                "hero_headline": "Precision printer consumables built for bulk procurement.",
+                "hero_subheadline": "Established in 1997 in Thane, Copian International supplies OEM-compatible toner cartridges, bulk toner powders, OPC drums, inkjet inks, and printer spare parts across 10 major printer brands.",
+                "primary_cta_label": "Explore Product Catalogue",
+                "secondary_cta_label": "Request Bulk Quote",
+                "sales_phone": "+91 93225 93719",
+                "sales_email": "Copiantoner@gmail.com",
+            },
+        ),
+    ])
+
+    db.add_all([
+        Article(
+            slug="evaluating-cost-per-page-enterprise-laser-fleets",
+            category="Procurement Guide",
+            title="Evaluating Cost-Per-Page Across Enterprise Laser Fleets",
+            summary="How IT procurement teams benchmark ISO/IEC 19752 cartridge yields, drum longevity, and bulk carton pricing to lower total print spend.",
+            content="For organizations managing 50 or more networked laser printers, consumable expenditure quickly outweighs hardware acquisition cost. Relying solely on unit cartridge price hides the impact of premature drum wear and inconsistent toner fill weights.\n\nBy standardizing on ISO/IEC 19752 tested compatible cartridges and consolidating purchases into quarterly bulk quotations, procurement teams achieve predictable cost-per-page metrics while maintaining crisp 1200 dpi output.",
+            image_url="/images/copian-blog-banner.png",
+            is_featured=True,
+        ),
+        Article(
+            slug="opc-drum-storage-humidity-standards-bulk-dealers",
+            category="Technical Note",
+            title="OPC Drum Storage & Humidity Standards for Bulk Dealers",
+            summary="Preventing light-fatigue and coating degradation in warehouse inventory.",
+            content="Organic Photoconductor (OPC) drums are light-sensitive precision imaging components. Bulk dealers should store OPC master cartons below 35°C and between 30–65% relative humidity away from direct fluorescent or UV lighting.\n\nKeep drums inside their black light-blocking sleeves until assembly to preserve charge acceptance and prevent backgrounding.",
+            image_url="/images/toner-img-2.png",
+            is_featured=False,
+        ),
+        Article(
+            slug="replace-fuser-rollers-vs-maintenance-kits",
+            category="Maintenance",
+            title="When to Replace Fuser Rollers vs. Full Maintenance Kits",
+            summary="Spotting PTFE sleeve wear before paper jams disrupt high-volume print runs.",
+            content="Inspect upper fuser roller PTFE coatings every 80,000 to 100,000 impressions. Early signs of sleeve scoring or ghosting can be resolved with an upper roller swap, whereas worn pressure rollers and bearings justify a full maintenance kit.",
+            image_url="/images/copian-banner-5.png",
+            is_featured=False,
+        ),
+        Article(
+            slug="dye-vs-pigment-bulk-inkjet-refills",
+            category="Inkjet Systems",
+            title="Dye vs. Pigment Bulk Inkjet Refills for Commercial Use",
+            summary="Selecting the right ink chemistry for archival documents and high-speed color.",
+            content="Pigment inks offer superior water and smudge resistance for corporate invoices and legal documents, while dye inks deliver wide color gamut and gloss performance for marketing proofs and photo print shops.",
+            image_url="/images/copian-blog-banner.png",
+            is_featured=False,
+        ),
+    ])
+
+    db.add_all([
+        Faq(
+            question="How do I request a bulk quotation?",
+            answer="Add your required SKUs and quantities to the Inquiry Cart, include any custom notes or GSTIN details, and submit. Our B2B desk responds with a proforma quote.",
+            display_order=1,
+        ),
+        Faq(
+            question="Are Copian toner cartridges compatible with OEM printers?",
+            answer="Yes. Every Copian SKU is engineered to match OEM fit, chip recognition, and ISO page-yield benchmarks. Use our Compatibility Finder to verify your exact printer model.",
+            display_order=2,
+        ),
+        Faq(
+            question="Do you supply regional distributors and resellers?",
+            answer="Yes, we support authorized distributors and B2B dealers across India with master-carton pricing and scheduled replenishment.",
+            display_order=3,
+        ),
+    ])
+
+    db.add_all([
+        SeoRedirect(source_path="/toner-cartridges", target_path="/category/toner-cartridges", status_code=301),
+        SeoRedirect(source_path="/opc-drums", target_path="/category/opc-drums", status_code=301),
+    ])
+
+    db.add(AuditLog(user_name="Arjun Mehta", action="SEED_INIT", module="System", entity_id="DB", details="Initialized Copian B2B PostgreSQL dataset"))
+    db.commit()

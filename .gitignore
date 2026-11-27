@@ -1,0 +1,16 @@
+copian_*/
+copian/backend/.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+copian/backend/.env
+copian/backend/uploads/*
+copian/frontend/node_modules/
+copian/frontend/.next/
+copian/frontend/.next-verify/
+copian/frontend/out/
+copian/frontend/.env*.local
+copian/frontend/tsconfig.tsbuildinfo
+*.log
+.DS_Store
+Thumbs.db
