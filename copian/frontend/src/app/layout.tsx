@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CartProvider } from "@/components/CartContext";
 import { CmsProvider } from "@/components/CmsContext";
+import GlobalShortcuts from "@/components/GlobalShortcuts";
 import { PwaInstallProvider } from "@/components/PwaInstallProvider";
 
 export const viewport: Viewport = {
@@ -52,7 +53,10 @@ export default function RootLayout({
       <body className="bg-light-surface text-light-on-surface font-body antialiased">
         <PwaInstallProvider>
           <CmsProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              <GlobalShortcuts />
+              {children}
+            </CartProvider>
           </CmsProvider>
         </PwaInstallProvider>
       </body>

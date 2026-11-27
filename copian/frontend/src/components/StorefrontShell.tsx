@@ -18,8 +18,8 @@ interface StorefrontShellProps {
 
 export default function StorefrontShell({
   children,
-  showUtilityBar = false,
-  showSearchInHeader = false,
+  showUtilityBar = true,
+  showSearchInHeader = true,
   fullFooter = false,
 }: StorefrontShellProps) {
   const pathname = usePathname();
@@ -34,6 +34,7 @@ export default function StorefrontShell({
   const [searchMatches, setSearchMatches] = useState<Product[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,6 +64,9 @@ export default function StorefrontShell({
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setSearchOpen(false);
+      }
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setMegaOpen(false);
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -112,58 +116,58 @@ export default function StorefrontShell({
 
   return (
     <div className="min-h-screen flex flex-col">
-      {showUtilityBar && (
-        <div className="bg-light-surface-container-low border-b border-light-outline-variant/80 hidden lg:block">
-          <div className="max-w-[1280px] mx-auto px-4 xl:px-6 py-1.5 flex items-center justify-between gap-4 text-[12px] text-light-on-surface-variant whitespace-nowrap">
-            <div className="flex items-center gap-2.5 shrink-0">
-              <span className="inline-flex items-center gap-1.5 font-medium text-light-on-surface">
-                <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
-                <span>{`Trusted Since ${contact.established_year} · ${metrics[1]?.value || "5k+"} ${metrics[1]?.label || "Businesses Served"}`}</span>
-              </span>
-              <span className="hidden xl:inline text-light-outline-variant">|</span>
-              <span className="hidden xl:inline">{`${metrics[2]?.value || "98%"} Retention · HSN 8443`}</span>
-            </div>
-            <div className="flex items-center gap-3.5 xl:gap-5 shrink-0">
-              <Link href="/compatibility" prefetch={false} className="hover:text-light-primary transition-colors">
-                Compatibility
-              </Link>
-              <Link href="/track-order" prefetch={false} className="hover:text-light-primary transition-colors">
-                Track Order
-              </Link>
-              <Link href="/account" prefetch={false} className="hover:text-light-primary transition-colors">
-                Buyer Portal
-              </Link>
-              <Link href="/distributors" prefetch={false} className="hidden xl:inline hover:text-light-primary transition-colors">
-                Distributors
-              </Link>
-              <Link
-                href="/admin"
-                prefetch={false}
-                className="inline-flex items-center gap-1 font-medium text-light-primary hover:underline"
-              >
-                <span className="material-symbols-outlined text-[14px]">admin_panel_settings</span>
-                ERP Portal
-              </Link>
-              {!isStandalone && (
-                <button
-                  type="button"
-                  onClick={promptInstall}
+      {/* Sticky Utility Bar & Main Header */}
+      <header ref={headerRef} className="sticky top-0 z-40 bg-light-surface-container-lowest/95 backdrop-blur-sm border-b border-light-outline-variant">
+        {showUtilityBar && (
+          <div className="bg-light-surface-container-low border-b border-light-outline-variant/80 hidden lg:block">
+            <div className="max-w-[1280px] mx-auto px-4 xl:px-6 py-1.5 flex items-center justify-between gap-4 text-[12px] text-light-on-surface-variant whitespace-nowrap">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="inline-flex items-center gap-1.5 font-medium text-light-on-surface">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+                  <span>{`Trusted Since ${contact.established_year} · ${metrics[1]?.value || "5k+"} ${metrics[1]?.label || "Businesses Served"}`}</span>
+                </span>
+                <span className="hidden xl:inline text-light-outline-variant">|</span>
+                <span className="hidden xl:inline">{`${metrics[2]?.value || "98%"} Retention · HSN 8443`}</span>
+              </div>
+              <div className="flex items-center gap-3.5 xl:gap-5 shrink-0">
+                <Link href="/compatibility" prefetch={false} className="hover:text-light-primary transition-colors">
+                  Compatibility
+                </Link>
+                <Link href="/track-order" prefetch={false} className="hover:text-light-primary transition-colors">
+                  Track Order
+                </Link>
+                <Link href="/account" prefetch={false} className="hover:text-light-primary transition-colors">
+                  Buyer Portal
+                </Link>
+                <Link href="/distributors" prefetch={false} className="hidden xl:inline hover:text-light-primary transition-colors">
+                  Distributors
+                </Link>
+                <Link
+                  href="/admin"
+                  prefetch={false}
                   className="inline-flex items-center gap-1 font-medium text-light-primary hover:underline"
                 >
-                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">download_for_offline</span>
-                  Install App
-                </button>
-              )}
-              <span className="font-mono text-mono-sm text-light-on-surface tabular-nums">
-                {contact.phone_primary}
-              </span>
+                  <span className="material-symbols-outlined text-[14px]">admin_panel_settings</span>
+                  ERP Portal
+                </Link>
+                {!isStandalone && (
+                  <button
+                    type="button"
+                    onClick={promptInstall}
+                    className="inline-flex items-center gap-1 font-medium text-light-primary hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">download_for_offline</span>
+                    Install App
+                  </button>
+                )}
+                <span className="font-mono text-mono-sm text-light-on-surface tabular-nums">
+                  {contact.phone_primary}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Sticky Main Header */}
-      <header className="sticky top-0 z-40 bg-light-surface-container-lowest/95 backdrop-blur-sm border-b border-light-outline-variant">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-2 xl:gap-4">
           <div className="flex items-center gap-3 xl:gap-5 min-w-0">
             <button
@@ -188,6 +192,7 @@ export default function StorefrontShell({
                   <button
                     type="button"
                     aria-expanded={megaOpen}
+                    aria-controls="products-mega-menu"
                     onClick={() => setMegaOpen((v) => !v)}
                     className={`inline-flex items-center gap-1 px-2.5 xl:px-3 py-2 rounded font-body text-label-md xl:text-label-lg transition-colors duration-state-change whitespace-nowrap ${
                       megaOpen || isProducts
@@ -197,8 +202,8 @@ export default function StorefrontShell({
                   >
                     <span>Products</span>
                     <span
-                      className={`material-symbols-outlined text-[18px] transition-transform duration-150 ${
-                        megaOpen ? "rotate-180" : ""
+                      className={`material-symbols-outlined text-[18px] transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        megaOpen ? "rotate-180" : "rotate-0"
                       }`}
                       aria-hidden="true"
                     >
@@ -362,14 +367,23 @@ export default function StorefrontShell({
         </div>
 
         {/* Mega Menu Panel */}
-        {megaOpen && (
-          <div className="border-t border-light-outline-variant bg-light-surface-container-lowest shadow-xl animate-megamenu-in">
+        {showUtilityBar && (
+          <div
+            id="products-mega-menu"
+            aria-hidden={!megaOpen}
+            className={`hidden lg:block absolute left-0 right-0 top-full z-40 border-b border-light-outline-variant bg-light-surface-container-lowest shadow-xl transition-[opacity,transform,visibility] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform] ${
+              megaOpen
+                ? "opacity-100 translate-y-0 visible pointer-events-auto"
+                : "opacity-0 -translate-y-2 invisible pointer-events-none"
+            }`}
+          >
             <div className="max-w-[1280px] mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-mono-sm text-light-primary uppercase px-2.5">Laser &amp; Imaging</span>
                 <Link
                   href="/category/toner-cartridges"
                   prefetch={false}
+                  onClick={() => setMegaOpen(false)}
                   className="flex items-center justify-between p-2.5 rounded hover:bg-light-surface-container-low group"
                 >
                   <div className="flex items-center gap-3">
@@ -383,13 +397,14 @@ export default function StorefrontShell({
                       </p>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-light-outline text-[18px]" aria-hidden="true">
+                  <span className="material-symbols-outlined text-light-outline text-[18px] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-light-primary" aria-hidden="true">
                     arrow_forward
                   </span>
                 </Link>
                 <Link
                   href="/category/toner-powder"
                   prefetch={false}
+                  onClick={() => setMegaOpen(false)}
                   className="flex items-center justify-between p-2.5 rounded hover:bg-light-surface-container-low group"
                 >
                   <div className="flex items-center gap-3">
@@ -403,7 +418,7 @@ export default function StorefrontShell({
                       </p>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-light-outline text-[18px]" aria-hidden="true">
+                  <span className="material-symbols-outlined text-light-outline text-[18px] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-light-primary" aria-hidden="true">
                     arrow_forward
                   </span>
                 </Link>
@@ -413,6 +428,7 @@ export default function StorefrontShell({
                 <Link
                   href="/category/opc-drums"
                   prefetch={false}
+                  onClick={() => setMegaOpen(false)}
                   className="flex items-center justify-between p-2.5 rounded hover:bg-light-surface-container-low group"
                 >
                   <div className="flex items-center gap-3">
@@ -426,13 +442,14 @@ export default function StorefrontShell({
                       </p>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-light-outline text-[18px]" aria-hidden="true">
+                  <span className="material-symbols-outlined text-light-outline text-[18px] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-light-primary" aria-hidden="true">
                     arrow_forward
                   </span>
                 </Link>
                 <Link
                   href="/category/inkjet-ink"
                   prefetch={false}
+                  onClick={() => setMegaOpen(false)}
                   className="flex items-center justify-between p-2.5 rounded hover:bg-light-surface-container-low group"
                 >
                   <div className="flex items-center gap-3">
@@ -446,7 +463,7 @@ export default function StorefrontShell({
                       </p>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-light-outline text-[18px]" aria-hidden="true">
+                  <span className="material-symbols-outlined text-light-outline text-[18px] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-light-primary" aria-hidden="true">
                     arrow_forward
                   </span>
                 </Link>
@@ -464,9 +481,26 @@ export default function StorefrontShell({
                 <Link
                   href="/compatibility"
                   prefetch={false}
+                  onClick={() => setMegaOpen(false)}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded bg-light-primary text-light-on-primary font-body text-label-lg hover:bg-light-primary-container"
                 >
                   <span>Open Compatibility Finder</span>
+                </Link>
+              </div>
+            </div>
+            <div className="border-t border-light-outline-variant/60 bg-light-surface-container-low/60">
+              <div className="max-w-[1280px] mx-auto px-6 py-2.5 flex items-center justify-between">
+                <span className="font-body text-body-sm text-light-on-surface-variant">
+                  Explore 220+ OEM-compatible SKUs with MOQ and bulk tier pricing.
+                </span>
+                <Link
+                  href="/products"
+                  prefetch={false}
+                  onClick={() => setMegaOpen(false)}
+                  className="inline-flex items-center gap-1 font-body text-label-lg text-light-primary hover:underline"
+                >
+                  <span>Browse Full B2B Catalogue</span>
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
                 </Link>
               </div>
             </div>

@@ -13,7 +13,7 @@ select:not([multiple]):not([size]) {
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5.5rem;
+  scroll-padding-top: 6.5rem;
 }
 
 html,

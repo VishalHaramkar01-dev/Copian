@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import AdminShell from "@/components/AdminShell";
 
 export function Skeleton({ className = "h-4 w-full" }: { className?: string }) {
   return (
@@ -734,32 +737,9 @@ export function CompatibilitySkeleton() {
   );
 }
 
-/** Shared ERP Sidebar + Sticky Topbar Skeleton Frame for per-page Admin loading.tsx */
+/** Shared live ERP Sidebar + Topbar frame so only the main content pane shows route skeletons. */
 export function AdminSkeletonFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen flex bg-light-surface" aria-busy="true">
-      <div className="w-64 shrink-0 bg-dark-surface-container-low border-r border-dark-outline-variant min-h-screen hidden lg:flex flex-col p-4 gap-4">
-        <Skeleton className="h-10 w-full opacity-25" />
-        <div className="space-y-3 pt-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-full opacity-20" />
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-16 border-b border-light-outline-variant bg-light-surface-container-lowest px-4 md:px-6 flex items-center justify-between gap-4">
-          <Skeleton className="h-4 w-44" />
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-9 w-32 rounded" />
-            <Skeleton className="h-9 w-9 rounded-full" />
-          </div>
-        </div>
-        <div className="p-4 md:p-6 max-w-[1440px] w-full mx-auto flex flex-col gap-6">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
+  return <AdminShell breadcrumb={["ERP Workspace"]}>{children}</AdminShell>;
 }
 
 export function AdminDashboardSkeleton() {
