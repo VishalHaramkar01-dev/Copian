@@ -90,7 +90,7 @@ All public B2B buyer experiences live under `copian/frontend/src/app/` wrapped i
 
 ### 9. Supporting Content & Legal/SEO Routes
 - **`/distributors`** ([`distributors/page.tsx`](../copian/frontend/src/app/distributors/page.tsx)): Client-side search across city, state, distributor name, and territory backed by `GET /api/distributors?active_only=true`.
-- **`/resources`** ([`resources/page.tsx`](../copian/frontend/src/app/resources/page.tsx)): Live article search, featured article spotlight, `?article=<slug>` deep-link reader, and smooth scroll-to-top full-article view (`GET /api/articles`).
+- **`/resources`** ([`resources/page.tsx`](../copian/frontend/src/app/resources/page.tsx) + [`ArticleReaderModal.tsx`](../copian/frontend/src/features/resources/ArticleReaderModal.tsx)): Live article search, featured article spotlight, `?article=<slug>` deep links, and an overlay editorial reader modal (`role="dialog"`) with scroll reading-progress bar, estimated read time, Executive Summary callout, Share/Copy Link, contextual B2B CTA, and Previous/Next guide navigation (`GET /api/articles`).
 - **`/about`** ([`about/page.tsx`](../copian/frontend/src/app/about/page.tsx)): Brand story, 10 OEM ecosystem chips linking to `/compatibility?brand=...`, 4 proof metrics, and quality/warehouse pillars driven by `CmsContext`.
 - **`/contact`** ([`contact/page.tsx`](../copian/frontend/src/app/contact/page.tsx)): B2B inquiry & dealership form (`POST /api/contact`), Thane HQ details, and WhatsApp direct link.
 - **`/sitemap` & `/sitemap.xml`**: Human-readable journey-flow architecture directory (`/sitemap`) alongside dynamic XML sitemap (`/sitemap.xml`) and crawler policy (`/robots.txt`).
