@@ -46,7 +46,7 @@ src/
 
 ## 3. Shared Context Providers ([`src/app/layout.tsx`](../copian/frontend/src/app/layout.tsx))
 
-`RootLayout` wraps all routes in three providers in order:
+`RootLayout` wraps all routes in three providers in order and mounts `<GlobalShortcuts />` ([`GlobalShortcuts.tsx`](../copian/frontend/src/components/GlobalShortcuts.tsx), listening for `Alt + Shift + A` outside form inputs to toggle between `/admin` and `/`):
 1. **`PwaInstallProvider`** ([`PwaInstallProvider.tsx`](../copian/frontend/src/components/PwaInstallProvider.tsx))
 2. **`CmsProvider`** ([`CmsContext.tsx`](../copian/frontend/src/components/CmsContext.tsx))
 3. **`CartProvider`** ([`CartContext.tsx`](../copian/frontend/src/components/CartContext.tsx))

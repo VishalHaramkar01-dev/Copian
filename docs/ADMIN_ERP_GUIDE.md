@@ -41,7 +41,7 @@ The Copian Admin ERP spans `/admin/login` plus **12 workspace routes** wrapped i
 
 ### [`AdminShell.tsx`](../copian/frontend/src/components/AdminShell.tsx) Shared Capabilities
 - **Responsive Collapsible Sidebar**: Fixed dark rail on `lg+`, slide-over drawer on mobile/tablet, showing only modules passing `canViewModule` plus live unreviewed inquiry count badge (`unreadInquiries`).
-- **Global Search (`showSearch` prop, enabled on `/admin`)**: Press `/` anywhere outside form inputs to focus search; debounced `150ms` `GET /api/search?q=...` returns top 5 matching products, inquiries, and orders linking to their modules.
+- **Global Search & Toggle Shortcut (`showSearch` prop, enabled on `/admin`)**: Press `/` anywhere outside form inputs to focus search; debounced `150ms` `GET /api/search?q=...` returns top 5 matching products, inquiries, and orders linking to their modules. Press `Alt + Shift + A` outside form inputs inside `/admin/*` to return to the homepage (`/`).
 - **Notifications Popover**: Red indicator dot when low-stock alerts or unreviewed inquiries exist; quick links to `/admin/inquiries` and `/admin/inventory`.
 - **Hot Role Switcher (Demo Testing)**: Profile dropdown can switch sessions live between `Arjun Mehta (Super Admin)`, `R. Sharma (Inventory Manager)`, and `Rohan Deshmukh (Sales Manager)` via `GET /api/auth/demo-session?email=...`, redirecting to `/admin` if the switched role lacks view permission for the current route.
 

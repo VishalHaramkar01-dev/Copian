@@ -8,19 +8,19 @@ All public B2B buyer experiences live under `copian/frontend/src/app/` wrapped i
 
 | Route | Source File | Render Mode | Shell Options | Loading Skeleton (`loading.tsx`) |
 |---|---|---|---|---|
-| `/` | [`page.tsx`](../copian/frontend/src/app/page.tsx) | CSR | `showUtilityBar`, `showSearchInHeader`, `fullFooter` | `HomePageSkeleton` |
-| `/products` | [`products/page.tsx`](../copian/frontend/src/app/products/page.tsx) | CSR + `<Suspense>` | Default compact header/footer | `CataloguePageSkeleton` |
-| `/category/[slug]` | [`category/[slug]/page.tsx`](../copian/frontend/src/app/category/%5Bslug%5D/page.tsx) + [`CategoryDetailView.tsx`](../copian/frontend/src/features/catalog/CategoryDetailView.tsx) | SSR metadata/JSON-LD + CSR view | Default | `CategoryDetailSkeleton` |
-| `/product/[sku]` | [`product/[sku]/page.tsx`](../copian/frontend/src/app/product/%5Bsku%5D/page.tsx) + [`ProductDetailView.tsx`](../copian/frontend/src/features/catalog/ProductDetailView.tsx) | SSR metadata/JSON-LD + CSR view | Default | `ProductDetailSkeleton` |
-| `/compatibility` | [`compatibility/page.tsx`](../copian/frontend/src/app/compatibility/page.tsx) | CSR + `<Suspense>` | Default | `CompatibilitySkeleton` |
-| `/inquiry-cart` | [`inquiry-cart/page.tsx`](../copian/frontend/src/app/inquiry-cart/page.tsx) | CSR | Default | `InquiryCartPageSkeleton` |
-| `/track-order` | [`track-order/page.tsx`](../copian/frontend/src/app/track-order/page.tsx) | CSR | Default | Root fallback if streaming |
-| `/account` | [`account/page.tsx`](../copian/frontend/src/app/account/page.tsx) | CSR | Default | `AccountPageSkeleton` |
-| `/distributors` | [`distributors/page.tsx`](../copian/frontend/src/app/distributors/page.tsx) | CSR | Default | `DistributorsPageSkeleton` |
-| `/resources` | [`resources/page.tsx`](../copian/frontend/src/app/resources/page.tsx) | CSR + `<Suspense>` | Default | `ResourcesPageSkeleton` |
-| `/about` | [`about/page.tsx`](../copian/frontend/src/app/about/page.tsx) | CSR (`useCms`) | Default | Instant static defaults |
-| `/contact` | [`contact/page.tsx`](../copian/frontend/src/app/contact/page.tsx) | CSR | Default | Instant form |
-| `/sitemap` | [`sitemap/page.tsx`](../copian/frontend/src/app/sitemap/page.tsx) | Pure static SSR | Default | None needed |
+| `/` | [`page.tsx`](../copian/frontend/src/app/page.tsx) | CSR | Defaults (`showUtilityBar=true`, `showSearchInHeader=true`) + `fullFooter` | `HomePageSkeleton` |
+| `/products` | [`products/page.tsx`](../copian/frontend/src/app/products/page.tsx) | CSR + `<Suspense>` | Sticky utility bar + search, compact footer | `CataloguePageSkeleton` |
+| `/category/[slug]` | [`category/[slug]/page.tsx`](../copian/frontend/src/app/category/%5Bslug%5D/page.tsx) + [`CategoryDetailView.tsx`](../copian/frontend/src/features/catalog/CategoryDetailView.tsx) | SSR metadata/JSON-LD + CSR view | Sticky utility bar + search, compact footer | `CategoryDetailSkeleton` |
+| `/product/[sku]` | [`product/[sku]/page.tsx`](../copian/frontend/src/app/product/%5Bsku%5D/page.tsx) + [`ProductDetailView.tsx`](../copian/frontend/src/features/catalog/ProductDetailView.tsx) | SSR metadata/JSON-LD + CSR view | Sticky utility bar + search, compact footer | `ProductDetailSkeleton` |
+| `/compatibility` | [`compatibility/page.tsx`](../copian/frontend/src/app/compatibility/page.tsx) | CSR + `<Suspense>` | Sticky utility bar + search, compact footer | `CompatibilitySkeleton` |
+| `/inquiry-cart` | [`inquiry-cart/page.tsx`](../copian/frontend/src/app/inquiry-cart/page.tsx) | CSR | Sticky utility bar + search, compact footer | `InquiryCartPageSkeleton` |
+| `/track-order` | [`track-order/page.tsx`](../copian/frontend/src/app/track-order/page.tsx) | CSR | Sticky utility bar + search, compact footer | Root fallback if streaming |
+| `/account` | [`account/page.tsx`](../copian/frontend/src/app/account/page.tsx) | CSR | Sticky utility bar + search, compact footer | `AccountPageSkeleton` |
+| `/distributors` | [`distributors/page.tsx`](../copian/frontend/src/app/distributors/page.tsx) | CSR | Sticky utility bar + search, compact footer | `DistributorsPageSkeleton` |
+| `/resources` | [`resources/page.tsx`](../copian/frontend/src/app/resources/page.tsx) | CSR + `<Suspense>` | Sticky utility bar + search, compact footer | `ResourcesPageSkeleton` |
+| `/about` | [`about/page.tsx`](../copian/frontend/src/app/about/page.tsx) | CSR (`useCms`) | Sticky utility bar + search, compact footer | Instant static defaults |
+| `/contact` | [`contact/page.tsx`](../copian/frontend/src/app/contact/page.tsx) | CSR | Sticky utility bar + search, compact footer | Instant form |
+| `/sitemap` | [`sitemap/page.tsx`](../copian/frontend/src/app/sitemap/page.tsx) | Pure static SSR | Sticky utility bar + search, compact footer | None needed |
 | `/sitemap.xml` | [`sitemap.xml/route.ts`](../copian/frontend/src/app/sitemap.xml/route.ts) | Dynamic XML Route (`force-dynamic`) | — | — |
 | `/robots.txt` | [`robots.ts`](../copian/frontend/src/app/robots.ts) | Metadata Route | — | — |
 
@@ -28,11 +28,12 @@ All public B2B buyer experiences live under `copian/frontend/src/app/` wrapped i
 
 ## Global Storefront Chrome ([`StorefrontShell.tsx`](../copian/frontend/src/components/StorefrontShell.tsx))
 
-- **Optional Top Utility Bar (`showUtilityBar`)**: Shown on `/` (desktop `lg+`), featuring `CmsContext` credibility metrics, links to Compatibility Finder, Track Order, Buyer Portal, Distributors, ERP Portal (`/admin`), direct phone link, and an **Install App** button (`usePwaInstall()`, hidden when running as an installed PWA).
+- **Sticky Top Utility Bar (`showUtilityBar = true` by default)**: Pinned inside the sticky `<header>` across all storefront pages (`lg+`) so it remains visible when scrolling, opening the `Products` dropdown, or switching tabs. Displays `CmsContext` credibility metrics, links to Compatibility Finder, Track Order, Buyer Portal, Distributors, ERP Portal (`/admin`), direct phone link, and an **Install App** button (`usePwaInstall()`, hidden when running as an installed PWA).
 - **Sticky Navigation & Products Mega-Menu**:
   - Pressing `/` anywhere outside an `INPUT`, `TEXTAREA`, or `SELECT` focuses the header SKU/OEM search input.
+  - Pressing `Alt + Shift + A` (`Option + Shift + A` on macOS, implemented via [`GlobalShortcuts.tsx`](../copian/frontend/src/components/GlobalShortcuts.tsx) in root layout) toggles between the storefront (`/admin`) and returns to the homepage (`/`) when pressed again inside `/admin/*` (ignored while focused in form fields).
   - Typing queries `GET /api/products?q=...&status=Published` with a `150ms` debounce and shows up to 6 autocomplete matches; pressing Enter jumps directly to `/product/<sku>` on match or `/products?q=...`.
-  - When `showUtilityBar` is enabled, hovering/clicking **Products** opens a 3-column Mega Menu with category cards and a quick link to `/compatibility`.
+  - Clicking **Products** smoothly opens/closes (`220ms` opacity + translateY + chevron rotation) a floating 3-column Mega Menu with category cards, `/compatibility` quick link, and footer link to `/products`.
   - **Inquiry Cart** pill displays live item count (`useCart().count`).
 - **Mobile Drawer & Scroll-to-Top**: Slide-out mobile drawer includes search, all storefront + `/admin` links, WhatsApp deep link, and Install App action. Scrolling past `420px` reveals a fixed bottom-right smooth Back-to-Top button.
 
